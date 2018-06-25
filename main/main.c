@@ -27,7 +27,7 @@ static void leds_set_uniform(uint8_t r, uint8_t g, uint8_t b, uint8_t global) {
   assert(global <= 31);
   uint32_t word = leds_to_word(r, g, b, global);
   for (int i = 1; i < CONFIG_LEDS_COUNT + 1; i++)
-    leds_buffer[i] = word;
+    leds_buffer[i] = CONFIG_LEDS_INVERT ? ~word : word;
 }
 
 static void leds_set_led(size_t n, uint8_t r, uint8_t g, uint8_t b,
@@ -73,12 +73,12 @@ void app_main() {
   leds_init();
   for (;;) {
     // Blue is the warmest color
-    leds_set_uniform(0, 0, 255, 10);
+    leds_set_uniform(0, 0, 255, 31);
     leds_transmit(spi);
     vTaskDelay(pdMS_TO_TICKS(1000));
     // Go between red and green
     for (uint8_t o = 0, i = 0; i < 6; o = ~o, i++) {
-      leds_set_uniform(o, ~o, 0, 10);
+      leds_set_uniform(o, ~o, 0, 31);
       leds_transmit(spi);
       vTaskDelay(pdMS_TO_TICKS(500));
     }
@@ -89,7 +89,7 @@ void app_main() {
         if (n > 0)
           leds_set_led(n - 1, 0, 0, 0, 0);
         leds_set_led(n, c % 3 == 0 ? 0xff : 0, c % 3 == 1 ? 0xff : 0,
-                     c % 3 == 2 ? 0xff : 0, 10);
+                     c % 3 == 2 ? 0xff : 0, 31);
         leds_transmit(spi);
         vTaskDelay(pdMS_TO_TICKS(50));
       }
