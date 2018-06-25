@@ -1,0 +1,33 @@
+menu "ColdHands Configuration"
+
+config LEDS_COUNT
+        int "Number of leds"
+        default 50
+        help
+                Number of leds to turn on.
+
+config LEDS_INVERT
+        bool "Invert signals"
+        default 0
+        help
+                Enable if clock and data signals go through an inverter.
+
+config LEDS_SPI_MHZ
+        int "SPI speed in MHz"
+        default 10
+        help
+                SPI speed in MHz.
+
+config LEDS_SPI_SCLK
+        int "CLK port"
+        default 19
+        help
+                CLK GPIO pin for leds.
+
+config LEDS_SPI_MOSI
+        int "MOSI port"
+        default 23
+        help
+                MOSI GPIO pin for leds.
+
+endmenu
