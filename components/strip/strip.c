@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "fast_hsv2rgb.h"
 #include "strip.h"
 
 #define MAGIC 0xf8319fa0
@@ -54,11 +53,25 @@ void strip_set_all_leds(strip_t *strip, uint32_t color) {
 
 void strip_transmit(strip_t *strip) {
   check_magic(strip);
-  spi_transaction_t t;
-  memset(&t, 0, sizeof t);
-  t.length = 32 * (strip->leds_count + 2);
-  t.tx_buffer = strip->leds_buffer;
-  esp_err_t err = spi_device_transmit(strip->spi, &t);
+  memset(&strip->trans, 0, sizeof(spi_transaction_t));
+  strip->trans.length = 32 * (strip->leds_count + 2);
+  strip->trans.tx_buffer = strip->leds_buffer;
+  esp_err_t err = spi_device_transmit(strip->spi, &strip->trans);
+  ESP_ERROR_CHECK(err);
+}
+
+void strip_queue_transaction(strip_t *strip, TickType_t ticks_to_wait) {
+  check_magic(strip);
+  memset(&strip->trans, 0, sizeof(spi_transaction_t));
+  strip->trans.length = 32 * (strip->leds_count + 2);
+  strip->trans.tx_buffer = strip->leds_buffer;
+  esp_err_t err = spi_device_queue_trans(strip->spi, &strip->trans, ticks_to_wait);
+  ESP_ERROR_CHECK(err);
+}
+
+void strip_get_transaction_result(strip_t *strip, TickType_t ticks_to_wait) {
+  spi_transaction_t *t;
+  esp_err_t err = spi_device_get_trans_result(strip->spi, &t, ticks_to_wait);
   ESP_ERROR_CHECK(err);
 }
 
