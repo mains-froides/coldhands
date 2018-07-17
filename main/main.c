@@ -1,5 +1,6 @@
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "esp_log.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -8,89 +9,69 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef CONFIG_LEDS_INVERT
-#define CONFIG_LEDS_INVERT 0
-#endif // CONFIG_LEDS_INVERT
+#include "strip.h"
 
-static uint32_t leds_buffer[CONFIG_LEDS_COUNT + 2];
+#ifndef CONFIG_HEART_SPI_INVERT
+#define CONFIG_HEART_SPI_INVERT 0
+#endif // CONFIG_HEART_SPI_INVERT
 
-static void leds_init() {
-  leds_buffer[0] = CONFIG_LEDS_INVERT ? ~0 : 0;
-  leds_buffer[CONFIG_LEDS_COUNT + 1] = CONFIG_LEDS_INVERT ? 0 : ~0;
-}
+#ifndef CONFIG_HAND_SPI_INVERT
+#define CONFIG_HAND_SPI_INVERT 0
+#endif // CONFIG_HAND_SPI_INVERT
 
-static uint32_t leds_to_word(uint8_t r, uint8_t g, uint8_t b, uint8_t global) {
-  return 0xe0 | global | (b << 8) | (g << 16) | (r << 24);
-}
-
-static void leds_set_uniform(uint8_t r, uint8_t g, uint8_t b, uint8_t global) {
-  assert(global <= 31);
-  uint32_t word = leds_to_word(r, g, b, global);
-  for (int i = 1; i < CONFIG_LEDS_COUNT + 1; i++)
-    leds_buffer[i] = CONFIG_LEDS_INVERT ? ~word : word;
-}
-
-static void leds_set_led(size_t n, uint8_t r, uint8_t g, uint8_t b,
-                         uint8_t global) {
-  assert(n <= CONFIG_LEDS_COUNT);
-  leds_buffer[n + 1] = leds_to_word(r, g, b, global);
-}
-
-static void leds_transmit(spi_device_handle_t spi) {
-  spi_transaction_t t;
-  memset(&t, 0, sizeof t);
-  t.length = 8 * sizeof leds_buffer;
-  t.tx_buffer = leds_buffer;
-  esp_err_t err = spi_device_transmit(spi, &t);
-  ESP_ERROR_CHECK(err);
-}
+static strip_t hand;
+static strip_t heart;
 
 void app_main() {
-  esp_err_t ret;
-  spi_device_handle_t spi;
-  spi_bus_config_t buscfg = {
-      .miso_io_num = -1,
-      .mosi_io_num = CONFIG_LEDS_SPI_MOSI,
-      .sclk_io_num = CONFIG_LEDS_SPI_SCLK,
-      .quadwp_io_num = -1,
-      .quadhd_io_num = -1,
-      .max_transfer_sz = 8 * sizeof leds_buffer,
-  };
-  spi_device_interface_config_t devcfg = {
-      .clock_speed_hz = CONFIG_LEDS_SPI_MHZ * 1000 * 1000,
-      .mode =
-          CONFIG_LEDS_INVERT ? 2 : 0, // SPI mode 0 or 2 depending on inversion
-      .spics_io_num = -1,             // No CS pin
-      .queue_size = 1,
-  };
-  // Initialize the SPI bus
-  ret = spi_bus_initialize(HSPI_HOST, &buscfg, 1);
-  ESP_ERROR_CHECK(ret);
-  // Attach the leds to the SPI bus
-  ret = spi_bus_add_device(HSPI_HOST, &devcfg, &spi);
-  ESP_ERROR_CHECK(ret);
-  // Initialize the leds buffer
-  leds_init();
-  for (;;) {
-    // Blue is the warmest color
-    leds_set_uniform(0, 0, 255, 31);
-    leds_transmit(spi);
+  // Initialize the strips.
+  strip_init(&hand, VSPI_HOST, CONFIG_HAND_SPI_MHZ, CONFIG_HAND_SPI_SCLK, CONFIG_HAND_SPI_MOSI,
+      CONFIG_HAND_SPI_INVERT, CONFIG_HAND_LEDS_COUNT, 1);
+  strip_init(&heart, HSPI_HOST, CONFIG_HEART_SPI_MHZ, CONFIG_HEART_SPI_SCLK, CONFIG_HEART_SPI_MOSI,
+      CONFIG_HEART_SPI_INVERT, CONFIG_HEART_LEDS_COUNT, 2);
+  // Turn strips off.
+  strip_set_all_leds(&hand, COLOR_OFF);
+  strip_transmit(&hand);
+  strip_set_all_leds(&heart, COLOR_OFF);
+  strip_transmit(&heart);
+  // Test some colors 60° apart.
+  for (uint16_t i = 0; i < 6 * 256; i += 256) {
+    ESP_LOGD("COLOR", "hue = %d", i * 60 / 256);
+    strip_set_all_leds(&heart, hsv_to_color(i, 255, 255, 31));
+    strip_transmit(&heart);
     vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+  // Dummy animation.
+  for (;;) {
+    for (uint16_t i = 0; i < 6 * 256; i++) {
+      strip_set_all_leds(&heart, hsv_to_color(i, 255, 255, 31));
+      strip_transmit(&heart);
+      vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    for (uint16_t i = 0; i < 256; i++) {
+      strip_set_all_leds(&heart, hsv_to_color(0, i, 255, 31));
+      strip_transmit(&heart);
+      vTaskDelay(pdMS_TO_TICKS(20));
+    }
+    for (uint16_t i = 0; i < 256; i++) {
+      strip_set_all_leds(&heart, hsv_to_color(0, 255, i, 31));
+      strip_transmit(&heart);
+      vTaskDelay(pdMS_TO_TICKS(20));
+    }
     // Go between red and green
     for (uint8_t o = 0, i = 0; i < 6; o = ~o, i++) {
-      leds_set_uniform(o, ~o, 0, 31);
-      leds_transmit(spi);
+      strip_set_all_leds(&heart, rgb_to_color(o, ~o, 0, 31));
+      strip_transmit(&heart);
       vTaskDelay(pdMS_TO_TICKS(500));
     }
     // Snake
     for (uint8_t c = 0; c < 6; c++) {
-      leds_set_uniform(0, 0, 0, 0);
-      for (size_t n = 0; n < CONFIG_LEDS_COUNT; n++) {
+      strip_set_all_leds(&heart, COLOR_OFF);
+      for (size_t n = 0; n < heart.leds_count; n++) {
         if (n > 0)
-          leds_set_led(n - 1, 0, 0, 0, 0);
-        leds_set_led(n, c % 3 == 0 ? 0xff : 0, c % 3 == 1 ? 0xff : 0,
-                     c % 3 == 2 ? 0xff : 0, 31);
-        leds_transmit(spi);
+          strip_set_led(&heart, n-1, COLOR_OFF);
+        strip_set_led(&heart, n, rgb_to_color(c % 3 == 0 ? 0xff : 0, c % 3 == 1 ? 0xff : 0,
+                     c % 3 == 2 ? 0xff : 0, 31));
+        strip_transmit(&heart);
         vTaskDelay(pdMS_TO_TICKS(50));
       }
     }
