@@ -5,8 +5,6 @@
 #include "driver/spi_master.h"
 #include "fast_hsv2rgb.h" // Reexport
 
-#define MAX_LEDS_COUNT 50
-
 typedef struct {
   uint32_t magic;
   spi_bus_config_t spi_bus_config;
@@ -15,7 +13,7 @@ typedef struct {
   spi_transaction_t trans;
   size_t leds_count;
   bool leds_invert;
-  uint32_t leds_buffer[MAX_LEDS_COUNT + 2];
+  uint32_t leds_buffer[CONFIG_MAX_LEDS_COUNT + 2];
 } strip_t;
 
 void strip_init(strip_t *strip, uint32_t spi_bus, uint8_t speed_mhz, uint8_t ci, uint8_t di, bool leds_invert, size_t leds_count, int dma_chan);

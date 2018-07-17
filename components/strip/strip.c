@@ -5,13 +5,10 @@
 
 #define MAGIC 0xf8319fa0
 
-static inline
-void check_magic(strip_t *strip) {
-  assert(strip->magic == MAGIC);
-}
+#define CHECK_MAGIC(strip) assert(strip->magic == MAGIC)
 
 void strip_init(strip_t *strip, uint32_t spi_bus, uint8_t speed_mhz, uint8_t ci, uint8_t di, bool leds_invert, size_t leds_count, int dma_chan) {
-  assert(leds_count <= MAX_LEDS_COUNT);
+  assert(leds_count <= CONFIG_MAX_LEDS_COUNT);
 
   strip->spi_bus_config.miso_io_num = -1;
   strip->spi_bus_config.mosi_io_num = di;
@@ -37,13 +34,13 @@ void strip_init(strip_t *strip, uint32_t spi_bus, uint8_t speed_mhz, uint8_t ci,
 }
 
 void strip_set_led(strip_t *strip, size_t n, uint32_t color) {
-  check_magic(strip);
+  CHECK_MAGIC(strip);
   assert(n < strip->leds_count);
   strip->leds_buffer[n + 1] = strip->leds_invert ? ~color : color;
 }
 
 void strip_set_all_leds(strip_t *strip, uint32_t color) {
-  check_magic(strip);
+  CHECK_MAGIC(strip);
   if (strip->leds_invert)
     color = ~color;
   uint32_t *leds_buffer = strip->leds_buffer;
@@ -52,7 +49,7 @@ void strip_set_all_leds(strip_t *strip, uint32_t color) {
 }
 
 void strip_transmit(strip_t *strip) {
-  check_magic(strip);
+  CHECK_MAGIC(strip);
   memset(&strip->trans, 0, sizeof(spi_transaction_t));
   strip->trans.length = 32 * (strip->leds_count + 2);
   strip->trans.tx_buffer = strip->leds_buffer;
@@ -61,7 +58,7 @@ void strip_transmit(strip_t *strip) {
 }
 
 void strip_queue_transaction(strip_t *strip, TickType_t ticks_to_wait) {
-  check_magic(strip);
+  CHECK_MAGIC(strip);
   memset(&strip->trans, 0, sizeof(spi_transaction_t));
   strip->trans.length = 32 * (strip->leds_count + 2);
   strip->trans.tx_buffer = strip->leds_buffer;

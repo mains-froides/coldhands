@@ -2,7 +2,7 @@ menu "Led strips"
 
 config MAX_LEDS_COUNT
         int "The greatest leds on any strip"
-        default 50
+        default 250
         help
                 Length of the greatest strip in the system.
 

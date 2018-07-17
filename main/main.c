@@ -22,17 +22,20 @@
 // Start and stop (in seconds) of the heart sequence. It is on before,
 // and stays off after.
 #define HAND_START 0
-#define HAND_NONE 210
+#define HAND_NONE 185
 
 // Hand hue change (period is in seconds). Hue is between 0 and 360°, and
 // the minimum value must be smaller than the maximum value (a modulo will
 // be applied).
-#define HAND_HUE_PERIOD 45
-#define HAND_HUE_MIN 220
-#define HAND_HUE_MAX 260
+#define HAND_HUE_PERIOD 30
+#define HAND_HUE_MIN 140
+#define HAND_HUE_MAX 280
+
+// Hand pulse move (period is in seconds).
+#define HAND_VALUE_PERIOD 6
 
 // Global intensity factor for leds (from 1 to 31).
-#define HAND_GLOBAL 5
+#define HAND_GLOBAL 31
 
 static void vHand(strip_t *strip, uint32_t time) {
   // The global envelope goes down linearly.
@@ -50,12 +53,14 @@ static void vHand(strip_t *strip, uint32_t time) {
   uint16_t hue = (uint16_t) round(SINUSOIDAL(HAND_HUE_PERIOD,
         DEG_TO_HUE(HAND_HUE_MIN), DEG_TO_HUE(HAND_HUE_MAX))) % HSV_HUE_MAX;
 
+  uint8_t value = round(SINUSOIDAL(HAND_VALUE_PERIOD, envelope / 2, envelope) * 255);
+
   if (time % 100 == 0) {
     ESP_LOGD("HAND", "time = %d, envelope = %g, value = %d, hue = %d", time / 100, envelope,
-        (uint8_t) round(envelope * 255), hue);
+        value, hue);
   }
 
-  strip_set_all_leds(strip, hsv_to_color(hue, 255, round(envelope * 255), HAND_GLOBAL));
+  strip_set_all_leds(strip, hsv_to_color(hue, 255, value, HAND_GLOBAL));
 }
 
 // Start and stop (in seconds) of the heart sequence. It is off before,
@@ -65,7 +70,7 @@ static void vHand(strip_t *strip, uint32_t time) {
 
 // Blink start time and period. The delay is in seconds, the period in hundredth
 // of seconds. If the start time is 0, then no blinking will occur.
-#define HEART_BLINK_START 230
+#define HEART_BLINK_START 185
 #define HEART_BLINK_PERIOD 33
 
 // Heart hue change (period is in seconds). Hue is between 0 and 360°, and
@@ -75,14 +80,14 @@ static void vHand(strip_t *strip, uint32_t time) {
 #define HEART_HUE_MIN 350
 #define HEART_HUE_MAX 370
 
-// Heart "lung" move (period is in seconds).
+// Heart pulse move (period is in seconds).
 #define HEART_VALUE_PERIOD 6
 
 // Global intensity factor for leds (from 1 to 31).
-#define HEART_GLOBAL 5
+#define HEART_GLOBAL 31
 
 static void vHeart(strip_t *strip, uint32_t time) {
-  // The global envelope goes up slowly, with a square.
+  // The global envelope goes up linearly.
   float envelope;
 #if HEART_START > 0
   if (time < HEART_START * 100)
@@ -93,7 +98,6 @@ static void vHeart(strip_t *strip, uint32_t time) {
     envelope = 1.0;
   else
     envelope = (time - HEART_START * 100.0) / ((HEART_FULL - HEART_START) * 100);
-  envelope *= envelope;  // Let's go slowly
 
   uint16_t hue = (uint16_t) round(SINUSOIDAL(HEART_HUE_PERIOD,
         DEG_TO_HUE(HEART_HUE_MIN), DEG_TO_HUE(HEART_HUE_MAX))) % HSV_HUE_MAX;

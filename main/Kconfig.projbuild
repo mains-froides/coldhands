@@ -4,7 +4,7 @@ menu "Hands strip"
 
 config HAND_LEDS_COUNT
         int "Number of leds in hand strip"
-        default 50
+        default 250
         help
                 Number of leds to turn on.
 
@@ -16,7 +16,7 @@ config HAND_SPI_INVERT
 
 config HAND_SPI_MHZ
         int "Hand strip SPI speed in MHz"
-        default 10
+        default 1
         help
                 SPI speed in MHz.
 
@@ -38,7 +38,7 @@ menu "Heart strip"
 
 config HEART_LEDS_COUNT
         int "Number of leds in heart strip"
-        default 50
+        default 250
         help
                 Number of leds to turn on.
 
@@ -50,7 +50,7 @@ config HEART_SPI_INVERT
 
 config HEART_SPI_MHZ
         int "Heart strip SPI speed in MHz"
-        default 10
+        default 1
         help
                 SPI speed in MHz.
 
