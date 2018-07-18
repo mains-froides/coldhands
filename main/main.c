@@ -51,7 +51,7 @@ static void vHand(strip_t *strip, uint32_t time) {
     envelope = (HAND_NONE * 100.0 - time) / ((HAND_NONE - HAND_START) * 100);
 
   uint16_t hue = (uint16_t) round(SINUSOIDAL(HAND_HUE_PERIOD,
-        DEG_TO_HUE(HAND_HUE_MIN), DEG_TO_HUE(HAND_HUE_MAX))) % HSV_HUE_MAX;
+        DEG_TO_HUE(HAND_HUE_MIN), DEG_TO_HUE(HAND_HUE_MAX))) % HSV_HUE_STEPS;
 
   uint8_t value = round(SINUSOIDAL(HAND_VALUE_PERIOD, envelope / 2, envelope) * 255);
 
@@ -100,7 +100,7 @@ static void vHeart(strip_t *strip, uint32_t time) {
     envelope = (time - HEART_START * 100.0) / ((HEART_FULL - HEART_START) * 100);
 
   uint16_t hue = (uint16_t) round(SINUSOIDAL(HEART_HUE_PERIOD,
-        DEG_TO_HUE(HEART_HUE_MIN), DEG_TO_HUE(HEART_HUE_MAX))) % HSV_HUE_MAX;
+        DEG_TO_HUE(HEART_HUE_MIN), DEG_TO_HUE(HEART_HUE_MAX))) % HSV_HUE_STEPS;
 
   uint8_t value = round(SINUSOIDAL(HEART_VALUE_PERIOD, envelope / 2, envelope) * 255);
 
